@@ -454,20 +454,6 @@ export const useAppStore = create<AppState>()(
           return;
         }
 
-        // Quick network check before searching
-        try {
-          await fetch('https://www.google.com/generate_204', {
-            method: 'HEAD',
-            cache: 'no-cache',
-            signal: AbortSignal.timeout(5000)
-          });
-        } catch {
-          const message = 'Sem conexão com a internet. Verifique sua rede e tente novamente.';
-          set({ searchResults: [], searchLoading: false, searchError: true, searchErrorMessage: message });
-          get().showToast(message, 'error');
-          return;
-        }
-
         const requestId = ++searchRequestId;
         set({ searchLoading: true, searchError: false, searchErrorMessage: '' });
         try {
