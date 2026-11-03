@@ -1,6 +1,6 @@
 import { useAppStore } from '../stores/useAppStore'
 import { Play, Pause, SkipBack, SkipForward, Repeat, Shuffle, Volume2, VolumeX, ListMusic, Disc3, Expand, Minimize, X, Trash2, Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export function Player() {
   const {
@@ -27,6 +27,10 @@ export function Player() {
   } = useAppStore()
 
   const [expanded, setExpanded] = useState(false)
+  const [isDraggingProgress, setIsDraggingProgress] = useState(false)
+  const [isDraggingVolume, setIsDraggingVolume] = useState(false)
+  const progressRef = useRef<HTMLDivElement>(null)
+  const volumeRef = useRef<HTMLDivElement>(null)
 
   const formatTime = (s: number) => {
     if (!isFinite(s) || s < 0) return '0:00'
@@ -36,10 +40,74 @@ export function Player() {
   const progress = duration > 0 ? Math.max(0, Math.min(100, (position / duration) * 100)) : 0
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDraggingProgress) return
     const rect = e.currentTarget.getBoundingClientRect()
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
     seek(pct * duration)
   }
+
+  const handleProgressMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDraggingProgress(true)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    seek(pct * duration)
+  }
+
+  const handleProgressMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingProgress) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    seek(pct * duration)
+  }
+
+  const handleProgressMouseUp = () => {
+    setIsDraggingProgress(false)
+  }
+
+  const handleVolumeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDraggingVolume(true)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setVolume(pct)
+  }
+
+  const handleVolumeMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingVolume) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    setVolume(pct)
+  }
+
+  const handleVolumeMouseUp = () => {
+    setIsDraggingVolume(false)
+  }
+
+  // Global mouse listeners for dragging
+  useEffect(() => {
+    if (isDraggingProgress) {
+      document.addEventListener('mousemove', handleProgressMouseMove as any)
+      document.addEventListener('mouseup', handleProgressMouseUp)
+      document.addEventListener('mouseleave', handleProgressMouseUp)
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleProgressMouseMove as any)
+      document.removeEventListener('mouseup', handleProgressMouseUp)
+      document.removeEventListener('mouseleave', handleProgressMouseUp)
+    }
+  }, [isDraggingProgress])
+
+  useEffect(() => {
+    if (isDraggingVolume) {
+      document.addEventListener('mousemove', handleVolumeMouseMove as any)
+      document.addEventListener('mouseup', handleVolumeMouseUp)
+      document.addEventListener('mouseleave', handleVolumeMouseUp)
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleVolumeMouseMove as any)
+      document.removeEventListener('mouseup', handleVolumeMouseUp)
+      document.removeEventListener('mouseleave', handleVolumeMouseUp)
+    }
+  }, [isDraggingVolume])
 
   if (!currentTrack) {
     return (
@@ -48,7 +116,7 @@ export function Player() {
         style={{ height: 'calc(96px + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center gap-3 px-4 text-body text-fg-secondary" role="status" aria-live="polite">
-          <Disc3 className="h-5 w-5 text-brand-primary" aria-hidden="true" />
+          <Disc3 className="h-5 w-5 text-brand-primary animate-pulse-soft" aria-hidden="true" />
           <span>{playbackLoading ? 'Preparando o áudio…' : 'Escolha uma faixa para começar'}</span>
         </div>
       </div>
@@ -77,7 +145,7 @@ export function Player() {
             <img
               src={currentTrack.albumArt}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             {isPlaying && (
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
@@ -92,7 +160,7 @@ export function Player() {
           {/* Expand/Collapse Button */}
           <button
             onClick={() => setExpanded(!expanded)}
-            className={`absolute ${expanded ? 'top-4 right-4' : 'top-1/2 -translate-y-1/2 right-[-12px]'} btn-ghost btn-icon-sm glass-dark`}
+            className={`absolute ${expanded ? 'top-4 right-4' : 'top-1/2 -translate-y-1/2 right-[-12px]'} btn-ghost btn-icon-sm glass-dark transition-all duration-200 hover:scale-110 active:scale-95`}
             aria-label={expanded ? 'Minimizar player' : 'Expandir player'}
             aria-expanded={expanded}
           >
@@ -110,7 +178,7 @@ export function Player() {
             {!expanded && (
               <button
                 onClick={() => setExpanded(true)}
-                className="btn-ghost btn-icon-sm p-1.5 text-fg-tertiary hover:text-brand-primary hidden sm:flex"
+                className="btn-ghost btn-icon-sm p-1.5 text-fg-tertiary hover:text-brand-primary hover:bg-brand-primary/10 hidden sm:flex transition-all duration-200 active:scale-95"
                 aria-label="Abrir fila de reprodução"
               >
                 <ListMusic className="w-4 h-4" aria-hidden="true" />
@@ -120,9 +188,11 @@ export function Player() {
 
           {/* Progress Bar */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="w-11 text-right text-mono text-caption text-fg-tertiary tabular-nums sm:w-14">{formatTime(position)}</span>
+            <span className="w-11 text-right text-mono text-caption text-fg-tertiary tabular-nums sm:w-14 transition-colors duration-200">{formatTime(position)}</span>
             <div
+              ref={progressRef}
               className="group relative flex h-11 min-w-12 flex-1 cursor-pointer items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-primary"
+              onMouseDown={handleProgressMouseDown}
               onClick={handleProgressClick}
               role="slider"
               aria-label="Progresso da música"
@@ -141,18 +211,28 @@ export function Player() {
             >
               <div className="relative h-1.5 w-full rounded-full bg-border-default">
                 <div
-                  className="h-full rounded-full bg-brand-primary transition-[width] duration-75 ease-out"
+                  className="h-full rounded-full bg-gradient-to-r from-brand-primary to-violet-500 transition-[width] duration-75 ease-out"
                   style={{ width: `${progress}%` }}
                   role="presentation"
                 />
+                {/* Progress thumb */}
                 <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary opacity-0 shadow-lg transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 md:h-4 md:w-4"
+                  className={`pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-primary shadow-lg transition-all duration-200 md:h-4 md:w-4 ${
+                    isDraggingProgress || isPlaying ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+                  }`}
                   style={{ left: `${progress}%` }}
                   role="presentation"
                 />
+                {/* Buffered amount indicator */}
+                <div
+                  className="absolute top-1/2 h-full -translate-y-1/2 rounded-full bg-brand-primary/30"
+                  style={{ width: `${Math.min(progress + 10, 100)}%` }}
+                  role="presentation"
+                  aria-hidden="true"
+                />
               </div>
             </div>
-            <span className="w-11 text-mono text-caption text-fg-tertiary tabular-nums sm:w-14">{formatTime(duration)}</span>
+            <span className="w-11 text-mono text-caption text-fg-tertiary tabular-nums sm:w-14 transition-colors duration-200">{formatTime(duration)}</span>
           </div>
         </div>
 
@@ -163,7 +243,7 @@ export function Player() {
             onClick={toggleShuffle}
             className={`btn-ghost btn-icon hidden p-2 transition-all duration-200 sm:flex ${
               shuffle ? 'text-brand-primary bg-brand-primary/10' : 'text-fg-tertiary hover:text-fg-primary hover:bg-sidebar-hover'
-            }`}
+            } hover:scale-110 active:scale-95`}
             aria-label={shuffle ? 'Desativar aleatório' : 'Aleatório'}
             aria-pressed={shuffle}
           >
@@ -173,7 +253,7 @@ export function Player() {
           {/* Previous */}
           <button
             onClick={prevTrack}
-            className="btn-ghost btn-icon p-2 text-fg-secondary hover:text-fg-primary hover:bg-sidebar-hover transition-colors"
+            className="btn-ghost btn-icon p-2 text-fg-secondary hover:text-fg-primary hover:bg-sidebar-hover transition-all duration-200 hover:scale-110 active:scale-95"
             aria-label="Anterior"
           >
             <SkipBack className="w-6 h-6" aria-hidden="true" />
@@ -184,7 +264,7 @@ export function Player() {
             onClick={togglePlay}
             className={`btn-primary relative transition-all duration-200 ${
               expanded ? 'btn-icon-lg' : 'btn-icon'
-            } animate-in`}
+            } animate-in hover:scale-105 active:scale-95`}
             aria-label={playbackLoading ? 'Preparando áudio' : isPlaying ? 'Pausar' : 'Tocar'}
             disabled={playbackLoading}
             style={{ boxShadow: isPlaying ? 'var(--shadow-glow)' : 'var(--shadow-md)' }}
@@ -204,7 +284,7 @@ export function Player() {
           {/* Next */}
           <button
             onClick={nextTrack}
-            className="btn-ghost btn-icon p-2 text-fg-secondary hover:text-fg-primary hover:bg-sidebar-hover transition-colors"
+            className="btn-ghost btn-icon p-2 text-fg-secondary hover:text-fg-primary hover:bg-sidebar-hover transition-all duration-200 hover:scale-110 active:scale-95"
             aria-label="Próxima"
           >
             <SkipForward className="w-6 h-6" aria-hidden="true" />
@@ -215,13 +295,13 @@ export function Player() {
             onClick={toggleRepeat}
             className={`btn-ghost btn-icon hidden p-2 relative transition-all duration-200 sm:flex ${
               repeat !== 'off' ? 'text-brand-primary bg-brand-primary/10' : 'text-fg-tertiary hover:text-fg-primary hover:bg-sidebar-hover'
-            }`}
+            } hover:scale-110 active:scale-95`}
             aria-label={`Repetir: ${repeat === 'off' ? 'desligado' : repeat === 'all' ? 'todas' : 'uma'}`}
             aria-pressed={repeat !== 'off'}
           >
             <Repeat className="w-5 h-5" aria-hidden="true" />
             {repeat === 'one' && (
-              <span className="absolute -top-1 -right-1 text-[10px] font-bold text-brand-primary">1</span>
+              <span className="absolute -top-1 -right-1 text-[10px] font-bold text-brand-primary animate-pulse-soft">1</span>
             )}
           </button>
 
@@ -229,22 +309,33 @@ export function Player() {
           <div className="ml-auto hidden items-center gap-2 md:flex">
             <button
               onClick={() => setVolume(volume > 0 ? 0 : 0.8)}
-              className="btn-ghost btn-icon p-2 text-fg-secondary transition-colors hover:bg-sidebar-hover hover:text-fg-primary"
+              className="btn-ghost btn-icon p-2 text-fg-secondary transition-all duration-200 hover:bg-sidebar-hover hover:text-fg-primary hover:scale-110 active:scale-95"
               aria-label={volume > 0 ? 'Mutar' : 'Desmutar'}
               aria-pressed={volume === 0}
             >
               {volume === 0 ? <VolumeX className="h-5 w-5" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
             </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              className="h-1.5 w-20 cursor-pointer accent-brand-primary"
-              aria-label="Volume"
-            />
+            <div
+              ref={volumeRef}
+              className="relative h-6 w-20 cursor-pointer"
+              onMouseDown={handleVolumeMouseDown}
+            >
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="absolute inset-0 h-1.5 w-full cursor-pointer accent-brand-primary appearance-none opacity-0"
+                aria-label="Volume"
+                style={{
+                  background: `linear-gradient(to right, var(--brand-primary) ${volume * 100}%, var(--border-default) ${volume * 100}%)`
+                }}
+              />
+              <div className="absolute top-1/2 left-0 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary pointer-events-none" style={{ width: `${volume * 100}%` }} />
+              <div className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-brand-primary border-2 border-bg-primary shadow-lg pointer-events-none transition-all duration-200 ${isDraggingVolume ? 'scale-125' : 'scale-100'}`} style={{ left: `calc(${volume * 100}% - 8px)` }} />
+            </div>
           </div>
         </div>
       </div>
@@ -264,12 +355,6 @@ export function Player() {
                   <div className="flex-1 min-w-0 pt-2">
                     <div className="flex items-center gap-3 mb-4">
                       <span className="badge badge-primary animate-in">Tocando agora</span>
-                      {currentTrack.source === 'youtube' && (
-                        <span className="badge badge-neutral">YouTube</span>
-                      )}
-                      {currentTrack.source === 'local' && (
-                        <span className="badge badge-success">Local</span>
-                      )}
                     </div>
                     <h2 className="text-4xl md:text-5xl font-bold text-display text-fg-primary truncate mb-2 animate-in">{currentTrack.title}</h2>
                     <p className="text-xl text-fg-secondary mb-4 animate-in delay-1">{currentTrack.artists.join(', ')}</p>

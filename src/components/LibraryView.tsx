@@ -232,7 +232,6 @@ export function LibraryView() {
                 </button>
                 <div className="flex items-center justify-between gap-2 border-t border-border-subtle pt-2">
                   <span className="text-mono text-xs text-fg-tertiary">{formatTime(track.duration)}</span>
-                  <span className="badge badge-neutral text-xs">{track.source === 'local' ? 'Arquivo local' : track.source === 'spotify' ? 'Só metadados' : 'YouTube'}</span>
                 </div>
                 <div className="flex justify-end gap-1">
                   <button type="button" onClick={() => { addToQueue(track); showToast(`Adicionado à fila: ${track.title}`) }} className="btn-ghost btn-icon-sm min-h-11 min-w-11 text-fg-tertiary hover:text-brand-primary" aria-label={`Adicionar ${track.title} à fila`}>

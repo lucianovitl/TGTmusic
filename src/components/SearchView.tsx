@@ -7,14 +7,17 @@ import { Coffee, Disc3, Dumbbell, Globe2, Guitar, Headphones, Loader2, Mic2, Mus
 
 const suggestions = [
   { label: 'Top Brasil', icon: Globe2, query: 'top brasil 2026', color: 'bg-[var(--hero-paper)] text-[var(--hero-bg)]', shape: 'rounded-[1.7rem_0.65rem_1.7rem_0.65rem]' },
-  { label: 'Pop internacional', icon: Headphones, query: 'pop hits 2026', color: 'bg-[var(--hero-orange)] text-[var(--hero-bg)]', shape: 'rounded-full' },
-  { label: 'Rock clássico', icon: Guitar, query: 'classic rock', color: 'bg-[var(--hero-lime)] text-[var(--hero-bg)]', shape: 'rounded-[0.65rem_1.7rem_0.65rem_1.7rem]' },
+  { label: 'Pop Hits', icon: Headphones, query: 'pop hits 2026', color: 'bg-[var(--hero-orange)] text-[var(--hero-bg)]', shape: 'rounded-full' },
+  { label: 'Rock Clássico', icon: Guitar, query: 'classic rock', color: 'bg-[var(--hero-lime)] text-[var(--hero-bg)]', shape: 'rounded-[0.65rem_1.7rem_0.65rem_1.7rem]' },
   { label: 'Eletrônica', icon: Music, query: 'electronic music', color: 'bg-[var(--hero-lavender)] text-[var(--hero-bg)]', shape: 'rounded-2xl' },
-  { label: 'Hip hop', icon: Mic2, query: 'hip hop 2026', color: 'bg-[var(--hero-pink)] text-[var(--hero-bg)]', shape: 'rounded-[1.7rem_0.65rem_1.7rem_0.65rem]' },
+  { label: 'Hip Hop', icon: Mic2, query: 'hip hop 2026', color: 'bg-[var(--hero-pink)] text-[var(--hero-bg)]', shape: 'rounded-[1.7rem_0.65rem_1.7rem_0.65rem]' },
   { label: 'Indie', icon: Disc3, query: 'indie music', color: 'bg-[var(--hero-lime)] text-[var(--hero-bg)]', shape: 'rounded-full' },
   { label: 'Lo-fi', icon: Coffee, query: 'lofi beats', color: 'bg-[var(--hero-orange)] text-[var(--hero-bg)]', shape: 'rounded-[0.65rem_1.7rem_0.65rem_1.7rem]' },
   { label: 'Treino', icon: Dumbbell, query: 'workout music', color: 'bg-[var(--hero-paper)] text-[var(--hero-bg)]', shape: 'rounded-2xl' },
 ]
+
+// Hero decorative elements - animated sound bars
+const SOUND_BARS = 16
 
 export function SearchView() {
   const { search, searchResults, searchLoading, searchError, searchErrorMessage, setCurrentTrack, addToQueue, showToast, libraryTracks, playlists, setView } = useAppStore()
@@ -45,33 +48,35 @@ export function SearchView() {
           className="pointer-events-none absolute inset-0 opacity-[0.13]"
           style={{ backgroundImage: 'radial-gradient(var(--hero-paper) 1px, transparent 1px)', backgroundSize: '18px 18px' }}
         />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--hero-orange)] opacity-20 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[var(--hero-lavender)] opacity-20 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[var(--hero-orange)] opacity-20 blur-3xl animate-float" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[var(--hero-lavender)] opacity-20 blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
+        {/* Animated gradient mesh */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--hero-orange)]/5 via-transparent to-[var(--hero-lavender)]/5 animate-pulse-slow" />
 
-        <div className="relative grid items-center gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[430px] lg:grid-cols-[1.2fr_0.8fr] lg:px-12">
+        <div className="relative grid items-center gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[480px] lg:grid-cols-[1.2fr_0.8fr] lg:px-12">
           <div className="min-w-0">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--hero-lime)] px-3 py-1.5 text-sm font-bold text-[var(--hero-bg)] shadow-lg shadow-black/20">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--hero-lime)] px-3 py-1.5 text-sm font-bold text-[var(--hero-bg)] shadow-lg shadow-black/20 animate-in animate-slide-up">
+              <Sparkles className="h-4 w-4 animate-pulse" aria-hidden="true" />
               A pista está aberta
             </div>
-            <h2 id="search-heading" className="text-display max-w-2xl text-4xl font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+            <h2 id="search-heading" className="text-display max-w-2xl text-4xl font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl animate-in animate-fade-up delay-1">
               A próxima faixa pode mudar sua fase.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--hero-paper)]/80 sm:text-lg">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--hero-paper)]/80 sm:text-lg animate-in animate-fade-up delay-2">
               Descubra sons novos, monte seu set e deixe a próxima música encontrar você.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <div className="relative min-w-0 flex-1">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--hero-paper)]/60" aria-hidden="true" />
+            <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-3 sm:flex-row animate-in animate-fade-up delay-3">
+              <div className="relative min-w-0 flex-1 group">
+                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--hero-paper)]/60 group-focus-within:text-[var(--hero-lime)] transition-colors duration-200" aria-hidden="true" />
                 <input
                   ref={inputRef}
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Artista, faixa ou link do YouTube"
-                  className="h-14 w-full rounded-2xl border border-white/20 bg-black/20 pl-12 pr-12 text-base text-white outline-none placeholder:text-[var(--hero-paper)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hero-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--hero-bg)]"
+                  placeholder="Artista, faixa ou link"
+                  className="h-14 w-full rounded-2xl border border-white/20 bg-black/20 pl-12 pr-12 text-base text-white outline-none placeholder:text-[var(--hero-paper)]/50 focus-visible:ring-2 focus-visible:ring-[var(--hero-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--hero-bg)] transition-all duration-200 hover:border-white/30"
                   autoComplete="off"
                   spellCheck={false}
                   aria-label="Buscar músicas"
@@ -81,7 +86,7 @@ export function SearchView() {
                   <button
                     type="button"
                     onClick={handleClear}
-                    className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--hero-lime)]"
+                    className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--hero-lime)]"
                     aria-label="Limpar busca"
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
@@ -91,7 +96,7 @@ export function SearchView() {
               <button
                 type="submit"
                 disabled={searchLoading || !query.trim()}
-                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[var(--hero-lime)] px-6 font-bold text-[var(--hero-bg)] shadow-lg shadow-black/20 transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--hero-lime)] disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-40"
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[var(--hero-lime)] px-6 font-bold text-[var(--hero-bg)] shadow-lg shadow-black/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--hero-lime)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:transform-none sm:min-w-40 active:scale-[0.98]"
               >
                 {searchLoading ? <LoadingDots className="h-5" color="text-[var(--hero-bg)]" /> : <SearchIcon className="h-5 w-5" aria-hidden="true" />}
                 <span>{searchLoading ? 'Buscando…' : 'Buscar som'}</span>
@@ -99,7 +104,7 @@ export function SearchView() {
             </form>
 
             <p className="mt-4 flex items-start gap-2 text-sm leading-relaxed text-[var(--hero-paper)]/75" role="status" aria-live="polite">
-              <Globe2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <Globe2 className="mt-0.5 h-4 w-4 shrink-0 animate-pulse-slow" aria-hidden="true" />
               {nativeApp
                 ? 'A busca usa a conexão deste dispositivo; disponibilidade pode variar por região.'
                 : 'Prévia no navegador: busca e reprodução reais precisam do app desktop ou de um servidor online.'}
@@ -107,23 +112,77 @@ export function SearchView() {
           </div>
 
           <div className="relative mx-auto flex min-h-[220px] w-full max-w-sm items-center justify-center sm:min-h-[280px] lg:min-h-[340px]" aria-hidden="true">
-            <div className="absolute right-1 top-4 z-10 rotate-6 rounded-full border-2 border-[var(--hero-bg)] bg-[var(--hero-pink)] px-4 py-2 text-sm font-extrabold text-[var(--hero-bg)] shadow-xl sm:right-0 sm:top-8">
+            <div className="absolute right-1 top-4 z-10 rotate-6 rounded-full border-2 border-[var(--hero-bg)] bg-[var(--hero-pink)] px-4 py-2 text-sm font-extrabold text-[var(--hero-bg)] shadow-xl sm:right-0 sm:top-8 animate-in animate-slide-right delay-4">
               lado A · aumenta o som
             </div>
-            <div
-              className="relative aspect-square w-52 rounded-full border-[10px] border-[var(--hero-paper)] shadow-[0_25px_60px_rgba(0,0,0,0.45)] sm:w-64 lg:w-72"
-              style={{ backgroundImage: 'repeating-radial-gradient(circle, var(--hero-disc-light) 0 1px, var(--hero-disc-dark) 2px 7px)' }}
-            >
-              <div className="absolute inset-[31%] flex items-center justify-center rounded-full border-[6px] border-[var(--hero-bg)] bg-[var(--hero-orange)] text-[var(--hero-bg)]">
-                <Music2 className="h-10 w-10" aria-hidden="true" />
+
+            {/* Animated Vinyl Record */}
+            <div className="relative z-10" style={{ perspective: '1000px' }}>
+              {/* Outer glow ring */}
+              <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[var(--hero-orange)] via-[var(--hero-pink)] to-[var(--hero-lavender)] opacity-0 blur-2xl animate-pulse-glow" aria-hidden="true" />
+
+              {/* Vinyl Record */}
+              <div
+                className="relative aspect-square w-52 rounded-full border-[10px] border-[var(--hero-paper)] shadow-[0_25px_60px_rgba(0,0,0,0.45)] sm:w-64 lg:w-72 animate-in animate-scale-in delay-5 record-container"
+                style={{
+                  backgroundImage: 'repeating-radial-gradient(circle, var(--hero-disc-light) 0 1px, var(--hero-disc-dark) 2px 7px)',
+                  transformStyle: 'preserve-3d'
+                }}
+              >
+                {/* Record label - spins when playing */}
+                <div className="absolute inset-[31%] flex items-center justify-center rounded-full border-[6px] border-[var(--hero-bg)] bg-[var(--hero-orange)] text-[var(--hero-bg)] record-label" style={{ transformStyle: 'preserve-3d' }}>
+                  <Music2 className="h-10 w-10" aria-hidden="true" />
+                </div>
+                {/* Center hole */}
+                <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--hero-paper)]" />
+
+                {/* Tonearm */}
+                <div className="absolute -top-4 -right-6 w-16 h-16 origin-bottom-left rotate-45 tonearm" style={{ transformStyle: 'preserve-3d' }}>
+                  <div className="absolute bottom-0 left-1/2 w-1 h-16 bg-gradient-to-b from-[var(--hero-paper)]/80 to-transparent -translate-x-1/2" />
+                  <div className="absolute bottom-1 left-1/2 w-3 h-3 -translate-x-1/2 rounded-full bg-[var(--hero-paper)]/60" />
+                </div>
               </div>
-              <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--hero-paper)]" />
+
+              {/* Sound Visualizer Bars */}
+              <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 flex items-end gap-1 pointer-events-none" aria-hidden="true">
+                {Array.from({ length: SOUND_BARS }, (_, i) => (
+                  <div
+                    key={i}
+                    className="w-1 rounded-full bg-gradient-to-t from-[var(--hero-lime)] to-[var(--hero-orange)] opacity-70"
+                    style={{
+                      height: `${20 + Math.sin(i * 0.5) * 15}px`,
+                      animation: `sound-bar ${1.2 + i * 0.1}s ease-in-out infinite alternate`,
+                      animationDelay: `${i * 0.05}s`
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="absolute bottom-2 left-1 rotate-[-7deg] rounded-xl bg-[var(--hero-lime)] px-3 py-2 text-xs font-black tracking-wide text-[var(--hero-bg)] shadow-lg sm:bottom-5 sm:left-0">
+
+            <div className="absolute bottom-2 left-1 rotate-[-7deg] rounded-xl bg-[var(--hero-lime)] px-3 py-2 text-xs font-black tracking-wide text-[var(--hero-bg)] shadow-lg sm:bottom-5 sm:left-0 animate-in animate-slide-up delay-6">
               33⅓ RPM · mix sem regra
             </div>
-            <div className="absolute bottom-7 right-2 flex h-12 w-12 rotate-12 items-center justify-center rounded-full bg-[var(--hero-lavender)] text-[var(--hero-bg)] shadow-lg sm:bottom-12 sm:right-1 sm:h-14 sm:w-14">
+            <div className="absolute bottom-7 right-2 flex h-12 w-12 rotate-12 items-center justify-center rounded-full bg-[var(--hero-lavender)] text-[var(--hero-bg)] shadow-lg sm:bottom-12 sm:right-1 sm:h-14 sm:w-14 animate-in animate-bounce-in delay-7">
               <Disc3 className="h-7 w-7" />
+            </div>
+
+            {/* Floating musical notes */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div
+                  key={i}
+                  className="absolute text-[var(--hero-paper)]/10 text-xl animate-float-random"
+                  style={{
+                    left: `${10 + i * 10}%`,
+                    top: `${20 + i * 8}%`,
+                    animationDelay: `${i * 0.8}s`,
+                    animationDuration: `${15 + i * 3}s`,
+                    transform: `rotate(${i * 15}deg)`
+                  }}
+                >
+                  {i % 2 === 0 ? '♪' : '♫'}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -199,7 +258,7 @@ export function SearchView() {
         <section aria-label="Resultados da busca">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xl font-bold text-fg-primary">O que encontramos</h3>
-            <span className="badge badge-neutral">{searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'} · Spotify / YouTube</span>
+            <span className="badge badge-primary">{searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}</span>
           </div>
           <div className="hidden border-b border-border px-3 py-3 text-xs font-medium uppercase tracking-wider text-fg-tertiary lg:grid lg:grid-cols-[48px_1fr_200px_140px_100px_60px] lg:gap-4">
             <div>#</div><div>Título</div><div>Artista</div><div>Álbum</div><div>Duração</div><div />

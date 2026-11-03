@@ -375,10 +375,10 @@ export function SettingsView() {
                   Fontes de música
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  <span className="badge badge-neutral">Spotify (metadados)</span>
-                  <span className="badge badge-neutral">YouTube (fonte de áudio)</span>
+                  <span className="badge badge-neutral">Metadados (Spotify API)</span>
+                  <span className="badge badge-neutral">Áudio (YouTube)</span>
                 </div>
-                <p className="mt-3 text-sm text-fg-tertiary">A disponibilidade, os anúncios e os limites seguem as regras da fonte de áudio.</p>
+                <p className="mt-3 text-sm text-fg-tertiary">A disponibilidade, anúncios e limites dependem das fontes de dados.</p>
               </div>
 
               <div className="text-center text-sm text-fg-tertiary pt-4 border-t border-border">
