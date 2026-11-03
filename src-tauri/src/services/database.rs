@@ -3,6 +3,7 @@ use crate::utils::Result;
 use sqlx::{FromRow, Row, SqlitePool};
 use tauri::Manager;
 
+#[allow(dead_code)]
 pub async fn init_db(app: &tauri::AppHandle) -> Result<SqlitePool> {
     let path = app.path().app_data_dir()?.join("tgtmusic.db");
     let pool = SqlitePool::connect(&format!("sqlite:{}", path.display())).await?;
@@ -190,7 +191,6 @@ pub async fn remove_from_playlist(
 }
 
 pub async fn import_library(app: &tauri::AppHandle, tracks: Vec<Track>) -> Result<()> {
-    let pool = get_pool(app).await?;
     for track in tracks {
         add_to_library(app, &track).await?;
     }

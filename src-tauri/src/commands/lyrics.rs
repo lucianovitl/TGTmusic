@@ -1,6 +1,5 @@
 use crate::utils::Result;
 use reqwest::Client;
-use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn fetch_lyrics(title: String, artist: String) -> Result<Option<serde_json::Value>> {

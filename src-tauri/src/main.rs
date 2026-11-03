@@ -5,8 +5,6 @@ mod models;
 mod services;
 mod utils;
 
-use tauri::{Emitter, Manager};
-
 #[tokio::main]
 async fn main() {
     tauri::Builder::default()

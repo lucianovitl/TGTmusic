@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Track {
     pub id: String,
     pub title: String,
@@ -17,6 +18,7 @@ pub struct Track {
     pub playlist_id: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Playlist {
     pub id: String,
     pub name: String,

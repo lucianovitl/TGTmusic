@@ -188,6 +188,7 @@ impl YtDlp {
         Ok(url)
     }
 
+    #[allow(dead_code)]
     pub async fn download_audio(video_id: &str, output_path: &str) -> Result<()> {
         let binary = Self::find_sidecar(None);
         let video_url = format!("https://youtube.com/watch?v={video_id}");
@@ -361,7 +362,7 @@ impl YtDlp {
 
             // Collect all results
             for task in tasks {
-                if let Ok(mut more) = task.await {
+                if let Ok(more) = task.await {
                     results.extend(more);
                     if results.len() >= limit {
                         break;
