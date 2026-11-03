@@ -232,17 +232,17 @@ impl YtDlp {
         command.creation_flags(CREATE_NO_WINDOW);
         command.args([
             "--socket-timeout",
-            "15",
+            "10",     // Reduced from 15
             "--retries",
-            "2",
+            "1",      // Reduced from 2
             "--extractor-retries",
-            "2",
+            "1",      // Reduced from 2
             "--flat-playlist",
             "--dump-json",
             "--no-playlist",
             &search_query,
         ]);
-        let output = Self::run_command(command, 60).await?;
+        let output = Self::run_command(command, 20).await?;  // Reduced from 60s to 20s
         if !output.status.success() {
             return Err(Self::command_error(&output));
         }
@@ -300,35 +300,79 @@ impl YtDlp {
     }
 
     /// Search with fallback query variations for age-restricted content
+    /// Runs fallback searches in PARALLEL for speed
     pub async fn search_with_fallback(
         app: &tauri::AppHandle,
         query: &str,
         limit: usize,
     ) -> Result<Vec<VideoInfo>> {
-        // Try original query first
-        let mut results = Self::search(app, query, limit).await?;
+        // Try original query first with shorter timeout
+        let mut results = match Self::search(app, query, limit).await {
+            Ok(r) => r,
+            Err(e) => {
+                // If original search fails (network error), log and continue to fallbacks
+                eprintln!("Primary search failed: {}", e);
+                Vec::new()
+            }
+        };
 
-        // If not enough results, try variations
+        // If not enough results, try variations IN PARALLEL
         if results.len() < limit.min(5) {
+            // Only 3 most effective variations (reduced from 6)
             let variations = vec![
                 format!("{} lyric video", query),
                 format!("{} official audio", query),
-                format!("{} audio", query),
                 format!("{} cover", query),
-                format!("{} letra", query),
-                format!("{} lyric", query),
             ];
 
-            for variation in variations {
-                if results.len() >= limit {
-                    break;
+            // Run all fallback searches in parallel with timeout
+            // Collect existing IDs to avoid duplicates
+            let existing_ids: std::collections::HashSet<_> = results.iter().map(|r| r.id.clone()).collect();
+
+            let tasks: Vec<_> = variations
+                .into_iter()
+                .map(|variation| {
+                    let app = app.clone();
+                    let needed = limit;
+                    let existing = existing_ids.clone();
+                    tokio::spawn(async move {
+                        // Short timeout for fallback searches
+                        match tokio::time::timeout(
+                            std::time::Duration::from_secs(20),
+                            Self::search(&app, &variation, needed)
+                        ).await {
+                            Ok(Ok(mut more)) => {
+                                // Filter duplicates
+                                more.retain(|r| !existing.contains(&r.id));
+                                more
+                            }
+                            Ok(Err(e)) => {
+                                eprintln!("Fallback search '{}' failed: {}", variation, e);
+                                Vec::new()
+                            }
+                            Err(_) => {
+                                eprintln!("Fallback search '{}' timed out", variation);
+                                Vec::new()
+                            }
+                        }
+                    })
+                })
+                .collect();
+
+            // Collect all results
+            for task in tasks {
+                if let Ok(mut more) = task.await {
+                    results.extend(more);
+                    if results.len() >= limit {
+                        break;
+                    }
                 }
-                let mut more = Self::search(app, &variation, limit - results.len()).await?;
-                // Avoid duplicates by ID
-                let existing_ids: std::collections::HashSet<_> = results.iter().map(|r| &r.id).collect();
-                more.retain(|r| !existing_ids.contains(&r.id));
-                results.extend(more);
             }
+        }
+
+        // If still no results, return network error
+        if results.is_empty() {
+            return Err(Error::YtDlp("Não foi possível conectar à fonte. Verifique sua internet e tente novamente.".into()));
         }
 
         Ok(results)
