@@ -45,6 +45,7 @@ impl From<TrackRow> for Track {
             url: r.url,
             added_at: r.added_at,
             playlist_id: r.playlist_id,
+            source_type: None,
         }
     }
 }

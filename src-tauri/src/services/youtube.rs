@@ -58,6 +58,7 @@ impl YouTubeClient {
                     url: Some(format!("https://youtube.com/watch?v={video_id}")),
                     added_at: chrono::Utc::now().timestamp_millis(),
                     playlist_id: None,
+                    source_type: None,
                 })
             })
             .collect())

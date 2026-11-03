@@ -14,4 +14,5 @@ pub struct Track {
     pub url: Option<String>,
     pub added_at: i64,
     pub playlist_id: Option<String>,
+    pub source_type: Option<String>,
 }

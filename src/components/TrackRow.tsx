@@ -1,5 +1,5 @@
-import { Plus, Play, Trash2 } from 'lucide-react'
-import { Track } from '../stores/useAppStore'
+import { Plus, Play, Trash2, BadgeCheck, Music, Mic, FileAudio } from 'lucide-react'
+import { Track, SourceType } from '../stores/useAppStore'
 
 interface TrackRowProps {
   track: Track
@@ -13,6 +13,25 @@ interface TrackRowProps {
 export function TrackRow({ track, index, onPlay, onQueue, onRemove, showIndex = true }: TrackRowProps) {
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
   const playable = track.source !== 'spotify'
+
+  const renderSourceBadge = (type?: SourceType) => {
+    if (!type || type === 'other') return null
+    const configs: Record<Exclude<SourceType, 'other'>, { icon: React.ReactNode; label: string; color: string }> = {
+      official: { icon: <BadgeCheck className="h-3 w-3" />, label: 'Oficial', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+      lyric: { icon: <Music className="h-3 w-3" />, label: 'Lyric', color: 'bg-[var(--hero-lime)]/20 text-[var(--hero-lime)] border-[var(--hero-lime)]/30' },
+      cover: { icon: <Mic className="h-3 w-3" />, label: 'Cover', color: 'bg-[var(--hero-pink)]/20 text-[var(--hero-pink)] border-[var(--hero-pink)]/30' },
+      audio: { icon: <FileAudio className="h-3 w-3" />, label: 'Áudio', color: 'bg-[var(--hero-lavender)]/20 text-[var(--hero-lavender)] border-[var(--hero-lavender)]/30' },
+      live: { icon: <Mic className="h-3 w-3" />, label: 'Ao Vivo', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+    }
+    const config = configs[type]
+    if (!config) return null
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${config.color} animate-in`} title={config.label}>
+        {config.icon}
+        <span>{config.label}</span>
+      </span>
+    )
+  }
 
   return (
     <div role="listitem" className="group flex w-full items-center gap-2 rounded-xl px-2 py-2.5 transition-all duration-200 hover:bg-bg-hover hover:shadow-md sm:gap-4 sm:px-3 active:scale-[0.99]">
@@ -48,7 +67,10 @@ export function TrackRow({ track, index, onPlay, onQueue, onRemove, showIndex = 
           <p className="text-sm text-fg-secondary truncate">{track.artists.join(', ')}</p>
         </div>
 
-        <div className="w-48 text-center text-sm text-fg-tertiary hidden sm:block truncate max-w-[160px]">{track.album}</div>
+        <div className="w-48 text-center text-sm text-fg-tertiary hidden sm:block truncate max-w-[160px] flex items-center justify-center gap-2">
+          {renderSourceBadge(track.sourceType)}
+          <span>{track.album}</span>
+        </div>
         <div className="w-10 text-center font-mono text-sm tabular-nums text-fg-tertiary sm:w-20">{formatTime(track.duration)}</div>
       </button>
 

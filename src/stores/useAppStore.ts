@@ -11,10 +11,12 @@ import {
   subscribeToBrowserAudio,
 } from '../services/browserAudio'
 
+export type SourceType = 'official' | 'lyric' | 'cover' | 'audio' | 'live' | 'other';
+
 export interface Track {
   id: string; title: string; artists: string[]; album: string; albumArt: string;
   duration: number; source: 'youtube' | 'local' | 'spotify'; sourceId: string; url?: string;
-  addedAt: number; playlistId?: string
+  addedAt: number; playlistId?: string; sourceType?: SourceType
 }
 export interface Playlist { id: string; name: string; trackIds: string[]; createdAt: number; updatedAt: number }
 

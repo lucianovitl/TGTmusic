@@ -1,6 +1,6 @@
 use crate::{
     models::Track,
-    services::{youtube::YouTubeClient, ytdlp::YtDlp},
+    services::{youtube::YouTubeClient, ytdlp::{YtDlp, SourceType}},
     utils::{Error, Result},
 };
 use reqwest::Client;
@@ -113,42 +113,43 @@ impl SpotifyClient {
         query: &str,
         limit: usize,
     ) -> Result<Vec<Track>> {
-        if let Ok(items) = YtDlp::search(app, query, limit.clamp(1, 50)).await {
-            let tracks = items
+        // Use new search_with_fallback for better results avoiding age-restricted content
+        if let Ok(videos) = YtDlp::search_with_fallback(app, query, limit.clamp(1, 50)).await {
+            let tracks = videos
                 .into_iter()
-                .filter_map(|item| {
-                    let video_id = item["id"].as_str()?;
-                    let title = item["title"].as_str()?;
-                    let artist = item["channel"]
-                        .as_str()
-                        .or_else(|| item["uploader"].as_str())
-                        .unwrap_or("YouTube");
-                    let album_art = item["thumbnail"]
-                        .as_str()
-                        .or_else(|| {
-                            item["thumbnails"]
-                                .as_array()
-                                .and_then(|thumbnails| thumbnails.last())
-                                .and_then(|thumbnail| thumbnail["url"].as_str())
-                        })
-                        .unwrap_or_default();
-                    let url = item["webpage_url"]
-                        .as_str()
-                        .map(str::to_string)
-                        .unwrap_or_else(|| format!("https://youtube.com/watch?v={video_id}"));
+                .filter_map(|video| {
+                    if !video.source_type.is_playable() {
+                        return None;
+                    }
+                    let video_id = video.id;
+                    let title = video.title;
+                    let artist = if video.channel.is_empty() { "YouTube" } else { &video.channel };
+                    let album_art = video.thumbnail;
+                    let url = format!("https://youtube.com/watch?v={video_id}");
+
+                    // Map SourceType to frontend SourceType
+                    let source_type = match video.source_type {
+                        SourceType::Official => "official",
+                        SourceType::LyricVideo => "lyric",
+                        SourceType::Cover => "cover",
+                        SourceType::Audio => "audio",
+                        SourceType::Live => "live",
+                        SourceType::Other => "other",
+                    };
 
                     Some(Track {
                         id: format!("youtube-{video_id}"),
-                        title: title.to_string(),
+                        title,
                         artists: vec![artist.to_string()],
-                        album: "YouTube".into(),
-                        album_art: album_art.to_string(),
-                        duration: item["duration"].as_i64().unwrap_or_default(),
+                        album: format!("YouTube · {}", video.source_type.label()),
+                        album_art,
+                        duration: video.duration as i64,
                         source: "youtube".into(),
-                        source_id: video_id.to_string(),
+                        source_id: video_id,
                         url: Some(url),
                         added_at: chrono::Utc::now().timestamp_millis(),
                         playlist_id: None,
+                        source_type: Some(source_type.into()),
                     })
                 })
                 .collect::<Vec<_>>();
@@ -223,6 +224,7 @@ impl SpotifyClient {
                 url: None,
                 added_at: chrono::Utc::now().timestamp_millis(),
                 playlist_id: None,
+                source_type: None,
             });
         }
 

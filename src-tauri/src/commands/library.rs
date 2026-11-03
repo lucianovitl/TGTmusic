@@ -92,6 +92,7 @@ pub async fn pick_local_tracks(app: AppHandle) -> Result<Vec<Track>> {
                 url: None,
                 added_at,
                 playlist_id: None,
+                source_type: None,
             }
         })
         .collect())
