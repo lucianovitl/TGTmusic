@@ -59,14 +59,16 @@ impl AudioEngine {
             .clone()
             .ok_or_else(|| Error::Config("Audio engine is not initialized".into()))?;
         let output_handle = get_output_stream_handle()?;
-        let sink = Sink::try_new(output_handle).map_err(|error| Error::Audio(error.to_string()))?;
+        let sink = Sink::try_new(output_handle)
+    .map_err(|error| Error::Audio(format!("Failed to create audio sink: {}", error)))?;
         sink.set_volume(*self.volume.lock().unwrap());
 
         let duration = match track.source.as_str() {
             "local" => {
-                let file = std::fs::File::open(&track.source_id)?;
+                let file = std::fs::File::open(&track.source_id)
+                    .map_err(|error| Error::Audio(format!("Failed to open audio file: {}", error)))?;
                 let source = Decoder::new(BufReader::new(file))
-                    .map_err(|error| Error::Audio(error.to_string()))?;
+                    .map_err(|error| Error::Audio(format!("Failed to decode audio file: {}", error)))?;
                 let duration = source
                     .total_duration()
                     .map(|duration| duration.as_secs_f64())
@@ -83,7 +85,9 @@ impl AudioEngine {
                 let mut last_error = None;
                 for attempt in 0..2 {
                     let result = async {
-                        let url = YtDlp::get_stream_url(&app_handle, &track.source_id).await?;
+                        let url = YtDlp::get_stream_url(&app_handle, &track.source_id)
+                            .await
+                            .map_err(|error| Error::YtDlp(format!("Failed to get stream URL: {}", error)))?;
                         Ok::<_, Error>(
                             client
                                 .get(url)
@@ -109,10 +113,10 @@ impl AudioEngine {
                     }
                 }
                 let bytes = downloaded_audio.ok_or_else(|| {
-                    last_error.unwrap_or_else(|| Error::Audio("Audio download failed".into()))
+                    last_error.unwrap_or_else(|| Error::Audio("Audio download failed after retries".into()))
                 })?;
                 let source = Decoder::new(Cursor::new(bytes))
-                    .map_err(|error| Error::Audio(error.to_string()))?;
+                    .map_err(|error| Error::Audio(format!("Failed to decode audio: {}", error)))?;
                 let duration = source
                     .total_duration()
                     .map(|duration| duration.as_secs_f64())
@@ -220,7 +224,7 @@ impl AudioEngine {
             .as_ref()
             .ok_or_else(|| Error::Audio("No active track to seek".into()))?;
         sink.try_seek(position)
-            .map_err(|error| Error::Audio(error.to_string()))?;
+            .map_err(|error| Error::Audio(format!("Failed to seek: {}", error)))?;
         Ok(())
     }
 

@@ -23,19 +23,63 @@ let searchRequestId = 0
 
 function getFailureMessage(error: unknown, action: 'search' | 'playback') {
   const message = (typeof error === 'string' ? error : error instanceof Error ? error.message : String(error)).toLowerCase()
-  if (/timed out|timeout|dns|connect|network|connection/.test(message)) {
+
+  // Network/timeout errors
+  if (/timed out|timeout|dns|connect|network|connection|socket/.test(message)) {
     return action === 'search'
       ? 'A busca expirou ou a conexão não respondeu. Verifique a internet e tente novamente.'
       : 'A conexão demorou demais para carregar o áudio. Tente outra vez ou escolha outra faixa.'
   }
+
+  // yt-dlp not found
   if (/program not found|no such file|cannot find the file|yt-dlp\.exe/.test(message)) {
     return 'yt-dlp não foi encontrado. Em Configurações > Downloads, informe o caminho do executável.'
   }
-  if (/403|forbidden|unavailable/.test(message)) {
+
+  // YouTube specific errors - more detailed matching
+  if (/403|forbidden/.test(message)) {
     return action === 'search'
-      ? 'A fonte bloqueou esta busca. Tente novamente mais tarde ou use outro termo.'
-      : 'A fonte não liberou o áudio desta faixa. Tente outra música.'
+      ? 'A fonte bloqueou esta busca (403). Tente novamente mais tarde ou use outro termo.'
+      : 'Esta faixa tem restrição de acesso (403). Tente outra música.'
   }
+
+  if (/404|not found/.test(message)) {
+    return action === 'search'
+      ? 'Nenhum resultado encontrado para esta busca.'
+      : 'Esta faixa não foi encontrada no YouTube. Pode ter sido removida.'
+  }
+
+  if (/age.?restrict|age.?gate|sign.?in.?to.?confirm|login/.test(message)) {
+    return 'Esta faixa tem restrição de idade e requer login. Tente outra música.'
+  }
+
+  if (/geo.?block|country|region|unavailable.?in|not.?available.?in/.test(message)) {
+    return 'Esta faixa não está disponível na sua região. Tente outra música.'
+  }
+
+  if (/private|deleted|removed|unavailable/.test(message)) {
+    return action === 'search'
+      ? 'Alguns resultados não estão mais disponíveis.'
+      : 'Esta faixa não está mais disponível (privada/excluída). Tente outra música.'
+  }
+
+  if (/copyright|claim/.test(message)) {
+    return 'Esta faixa tem reivindicação de direitos autorais. Tente outra música.'
+  }
+
+  if (/live.?stream|premiere|upcoming/.test(message)) {
+    return 'Não é possível reproduzir transmissões ao vivo ou estreias. Tente a versão gravada.'
+  }
+
+  if (/format|codec|unsupported|decode/.test(message)) {
+    return 'Formato de áudio não suportado. Tente outra faixa.'
+  }
+
+  if (/rate.?limit|too.?many.?request/.test(message)) {
+    return 'Muitas requisições. Aguarde um momento e tente novamente.'
+  }
+
+  // Generic fallbacks
   return action === 'search'
     ? 'Não foi possível buscar agora. Verifique a conexão e tente novamente.'
     : 'Não foi possível reproduzir esta faixa. Tente outra música.'
