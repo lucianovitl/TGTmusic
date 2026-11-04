@@ -16,6 +16,8 @@ pub enum Error {
     Store(#[from] tauri_plugin_store::Error),
     #[error(transparent)]
     Channel(#[from] tokio::sync::oneshot::error::RecvError),
+    #[error(transparent)]
+    Rusqlite(#[from] rusqlite::Error),
     #[error("yt-dlp: {0}")]
     YtDlp(String),
     #[error("configuration: {0}")]

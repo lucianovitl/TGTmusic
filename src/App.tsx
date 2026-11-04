@@ -43,11 +43,6 @@ function App() {
       subscribe(() => listen<Track | null>('track-changed', (event) => {
         useAppStore.setState({ currentTrack: event.payload })
       })),
-      subscribe(() => listen<string>('theme-changed', (event) => {
-        const nextTheme = event.payload === 'light' ? 'light' : 'dark'
-        document.documentElement.setAttribute('data-theme', nextTheme)
-        useAppStore.setState({ theme: nextTheme })
-      })),
     ]).catch((error) => {
       if (!disposed) {
         console.error('Unable to subscribe to native app events', error)

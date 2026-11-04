@@ -18,12 +18,14 @@ tauri-plugin-updater = "2.0"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "macros"] }
 urlencoding = "2.1"
 tokio = { version = "1.38", features = ["full"] }
+futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["serde", "v4", "fast-rng"] }
-reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking", "stream"] }
 dirs = "6.0"
 rodio = { version = "0.19", features = ["default"] }
 anyhow = "1.0"
 thiserror = "1.0"
+rusqlite = { version = "0.31", features = ["bundled"] }

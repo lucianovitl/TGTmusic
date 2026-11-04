@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { invoke, isTauri } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import {
   pauseBrowserAudio,
   playBrowserAudio,
@@ -90,6 +91,8 @@ function getFailureMessage(error: unknown, action: 'search' | 'playback') {
 interface AppState {
   view: 'search' | 'library' | 'playlists' | 'settings'; setView: (v: AppState['view']) => void
   theme: 'dark' | 'light'; toggleTheme: () => void; init: () => Promise<void>
+  crossfadeEnabled: boolean; setCrossfadeEnabled: (enabled: boolean) => void
+  crossfadeDuration: number; setCrossfadeDuration: (duration: number) => void
   currentTrack: Track | null; queue: Track[]; queueIndex: number; isPlaying: boolean; playbackLoading: boolean; volume: number; position: number; duration: number; repeat: 'off' | 'all' | 'one'; shuffle: boolean
   setCurrentTrack: (t: Track | null, q?: Track[], idx?: number) => Promise<void>; togglePlay: () => Promise<void>
   nextTrack: () => Promise<void>; prevTrack: () => Promise<void>; seek: (p: number) => Promise<void>
@@ -131,6 +134,46 @@ export const useAppStore = create<AppState>()(
         } catch {
           get().showToast('Não foi possível carregar o tema salvo.', 'error')
         }
+
+        // Apply crossfade settings
+        try {
+          await invoke('set_crossfade', { enabled: get().crossfadeEnabled, durationSecs: get().crossfadeDuration });
+        } catch {
+          get().showToast('Não foi possível aplicar configurações de crossfade.', 'error')
+        }
+
+        // Listen for tray events
+        try {
+          await listen('tray-play-pause', () => {
+            get().togglePlay();
+          });
+          await listen('tray-next', () => {
+            get().nextTrack();
+          });
+          await listen('tray-prev', () => {
+            get().prevTrack();
+          });
+        } catch (error) {
+          console.warn('Failed to setup tray listeners:', error);
+        }
+
+        // Listen for playback events (auto-skip on error, track caching)
+        try {
+          await listen('playback-error', (event) => {
+            const errorMessage = event.payload as string;
+            get().showToast(errorMessage, 'error');
+            // Auto-skip to next track
+            get().nextTrack();
+          });
+          await listen('track-cached', (event) => {
+            const trackId = event.payload as string;
+            console.log(`Track cached: ${trackId}`);
+            // Optional: show a subtle toast
+            // get().showToast('Faixa salva no cache para reprodução instantânea', 'success');
+          });
+        } catch (error) {
+          console.warn('Failed to setup playback listeners:', error);
+        }
       },
       currentTrack: null,
       queue: [],
@@ -142,6 +185,24 @@ export const useAppStore = create<AppState>()(
       duration: 0,
       repeat: 'off',
       shuffle: false,
+      crossfadeEnabled: true,
+      crossfadeDuration: 5,
+      setCrossfadeEnabled: (enabled) => {
+        set({ crossfadeEnabled: enabled });
+        if (isTauri()) {
+          void invoke('set_crossfade', { enabled, durationSecs: get().crossfadeDuration }).catch(() => {
+            get().showToast('Não foi possível salvar o crossfade.', 'error')
+          })
+        }
+      },
+      setCrossfadeDuration: (duration) => {
+        set({ crossfadeDuration: duration });
+        if (isTauri()) {
+          void invoke('set_crossfade', { enabled: get().crossfadeEnabled, durationSecs: duration }).catch(() => {
+            get().showToast('Não foi possível salvar o crossfade.', 'error')
+          })
+        }
+      },
       setCurrentTrack: async (t, q = [], idx = 0) => {
         if (!t) {
           playbackRequestId += 1;
@@ -489,7 +550,7 @@ export const useAppStore = create<AppState>()(
       },
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
     }),
-    { name: 'tgtmusic-store', partialize: (s) => ({ theme: s.theme, volume: s.volume, repeat: s.repeat, shuffle: s.shuffle }) }
+    { name: 'tgtmusic-store', partialize: (s) => ({ theme: s.theme, volume: s.volume, repeat: s.repeat, shuffle: s.shuffle, crossfadeEnabled: s.crossfadeEnabled, crossfadeDuration: s.crossfadeDuration }) }
   )
 )
 

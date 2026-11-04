@@ -3,10 +3,32 @@ use crate::{
     services::audio_engine::ENGINE,
     utils::{Error, Result},
 };
+use tauri::{AppHandle, Emitter};
 
 #[tauri::command]
 pub async fn play_track(track: Track) -> Result<()> {
     ENGINE.play(track).await
+}
+
+/// Global shortcut: Play/Pause toggle
+#[tauri::command]
+pub async fn global_play_pause(app: AppHandle) -> Result<()> {
+    let _ = app.emit("tray-play-pause", ());
+    Ok(())
+}
+
+/// Global shortcut: Next track
+#[tauri::command]
+pub async fn global_next(app: AppHandle) -> Result<()> {
+    let _ = app.emit("tray-next", ());
+    Ok(())
+}
+
+/// Global shortcut: Previous track
+#[tauri::command]
+pub async fn global_prev(app: AppHandle) -> Result<()> {
+    let _ = app.emit("tray-prev", ());
+    Ok(())
 }
 
 #[tauri::command]

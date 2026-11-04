@@ -1,13 +1,28 @@
 import { useAppStore } from '../stores/useAppStore'
 import { invoke, isTauri } from '@tauri-apps/api/core'
-import { Save, Download, FolderOpen, Music, Trash2, Sun, Moon, Palette, HardDrive, Shield, Info, Check } from 'lucide-react'
+import { Save, Download, FolderOpen, Music, Trash2, Sun, Moon, Palette, HardDrive, Shield, Info, Check, SlidersHorizontal, Search, Database, Globe, Key, RefreshCw, Chrome, Wifi, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+interface BrowserCookie {
+  browser: string
+  profile: string
+  path: string
+  type: string
+}
+
 export function SettingsView() {
-  const { theme, toggleTheme, showToast, libraryTracks, playlists } = useAppStore()
+  const { theme, toggleTheme, showToast, libraryTracks, playlists, crossfadeEnabled, setCrossfadeEnabled, crossfadeDuration, setCrossfadeDuration } = useAppStore()
   const [downloadPath, setDownloadPath] = useState('')
   const [ytdlpPath, setYtdlpPath] = useState('')
   const [activeSection, setActiveSection] = useState<'appearance' | 'downloads' | 'data' | 'about'>('appearance')
+  const [browsers, setBrowsers] = useState<BrowserCookie[]>([])
+  const [detectingBrowsers, setDetectingBrowsers] = useState(false)
+  const [importingCookies, setImportingCookies] = useState<string | null>(null)
+  const [crossSourceFallback, setCrossSourceFallback] = useState(true)
+  const [downloadThenPlay, setDownloadThenPlay] = useState(false)
+  const [ytdlpProxy, setYtdlpProxy] = useState('')
+  const [ytdlpInvidious, setYtdlpInvidious] = useState('')
+  const [ytdlpCookies, setYtdlpCookies] = useState('')
 
   useEffect(() => {
     if (!isTauri()) return
@@ -15,10 +30,20 @@ export function SettingsView() {
     void Promise.all([
       invoke<string>('get_download_path').catch(() => ''),
       invoke<string>('get_ytdlp_path').catch(() => ''),
-    ]).then(([savedDownloadPath, savedYtdlpPath]) => {
+      invoke<string | null>('get_ytdlp_cookies').catch(() => null),
+      invoke<string | null>('get_ytdlp_proxy').catch(() => null),
+      invoke<string | null>('get_ytdlp_invidious').catch(() => null),
+      invoke<boolean>('get_cross_source_fallback').catch(() => true),
+      invoke<boolean>('get_download_then_play').catch(() => false),
+    ]).then(([savedDownloadPath, savedYtdlpPath, savedCookies, savedProxy, savedInvidious, savedCrossSource, savedDownloadThenPlay]) => {
       if (!active) return
       setDownloadPath(savedDownloadPath)
       setYtdlpPath(savedYtdlpPath)
+      setYtdlpCookies(savedCookies || '')
+      setYtdlpProxy(savedProxy || '')
+      setYtdlpInvidious(savedInvidious || '')
+      setCrossSourceFallback(savedCrossSource)
+      setDownloadThenPlay(savedDownloadThenPlay)
     })
     return () => { active = false }
   }, [])
@@ -31,6 +56,14 @@ export function SettingsView() {
     try {
       await invoke('set_download_path', { path: downloadPath })
       await invoke('set_ytdlp_path', { path: ytdlpPath })
+      await invoke('set_cross_source_fallback', { enabled: crossSourceFallback })
+      await invoke('set_download_then_play', { enabled: downloadThenPlay })
+      if (ytdlpProxy.trim()) {
+        await invoke('set_ytdlp_proxy', { proxy: ytdlpProxy.trim() })
+      }
+      if (ytdlpInvidious.trim()) {
+        await invoke('set_ytdlp_invidious', { instance: ytdlpInvidious.trim() })
+      }
       showToast('Configurações salvas', 'success')
     } catch {
       showToast('Não foi possível salvar as configurações.', 'error')
@@ -47,6 +80,170 @@ export function SettingsView() {
       if (path) setDownloadPath(path)
     } catch {
       showToast('Não foi possível escolher a pasta de download.', 'error')
+    }
+  }
+
+  const handleTestYtDlp = async () => {
+    if (!isTauri()) {
+      showToast('Teste disponível no app desktop.', 'info')
+      return
+    }
+    try {
+      const result = await invoke<string>('test_yt_dlp')
+      showToast(result, 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleTestYtDlpSearch = async () => {
+    if (!isTauri()) {
+      showToast('Teste disponível no app desktop.', 'info')
+      return
+    }
+    try {
+      const result = await invoke<string>('test_yt_dlp_search', { query: 'the weeknd blinding lights' })
+      showToast(result, 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleTestYtDlpRaw = async () => {
+    if (!isTauri()) {
+      showToast('Teste disponível no app desktop.', 'info')
+      return
+    }
+    try {
+      const result = await invoke<string>('test_yt_dlp_raw', { query: 'the weeknd blinding lights' })
+      showToast(result, 'info')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleTestYtDlpSearchDirect = async () => {
+    if (!isTauri()) {
+      showToast('Teste disponível no app desktop.', 'info')
+      return
+    }
+    try {
+      const result = await invoke<string>('test_yt_dlp_search_direct', { query: 'the weeknd blinding lights' })
+      showToast(result, 'info')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleDetectBrowsers = async () => {
+    if (!isTauri()) {
+      showToast('Disponível apenas no app desktop.', 'info')
+      return
+    }
+    setDetectingBrowsers(true)
+    try {
+      const result = await invoke<BrowserCookie[]>('detect_browser_cookies')
+      setBrowsers(result)
+      showToast(`Encontrados ${result.length} perfis de navegador`, 'success')
+    } catch (e) {
+      showToast(`Erro ao detectar navegadores: ${e}`, 'error')
+    } finally {
+      setDetectingBrowsers(false)
+    }
+  }
+
+  const handleImportCookies = async (browser: string, profile: string) => {
+    if (!isTauri()) {
+      showToast('Disponível apenas no app desktop.', 'info')
+      return
+    }
+    setImportingCookies(`${browser} (${profile})`)
+    try {
+      const result = await invoke<string>('import_browser_cookies', { browser, profile })
+      showToast(result, 'success')
+      // Refresh cookies path
+      const cookiesPath = await invoke<string | null>('get_ytdlp_cookies').catch(() => null)
+      setYtdlpCookies(cookiesPath || '')
+    } catch (e) {
+      showToast(`Erro ao importar cookies: ${e}`, 'error')
+    } finally {
+      setImportingCookies(null)
+    }
+  }
+
+  const handleClearCookies = async () => {
+    if (!isTauri()) {
+      showToast('Disponível apenas no app desktop.', 'info')
+      return
+    }
+    try {
+      await invoke('clear_ytdlp_cookies')
+      setYtdlpCookies('')
+      showToast('Cookies removidos', 'success')
+    } catch (e) {
+      showToast(`Erro ao remover cookies: ${e}`, 'error')
+    }
+  }
+
+  const handleSaveProxy = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('set_ytdlp_proxy', { proxy: ytdlpProxy })
+      showToast('Proxy salvo', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleClearProxy = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('clear_ytdlp_proxy')
+      setYtdlpProxy('')
+      showToast('Proxy removido', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleSaveInvidious = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('set_ytdlp_invidious', { instance: ytdlpInvidious })
+      showToast('Invidious salvo', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleClearInvidious = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('clear_ytdlp_invidious')
+      setYtdlpInvidious('')
+      showToast('Invidious removido', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleSaveCrossSourceFallback = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('set_cross_source_fallback', { enabled: crossSourceFallback })
+      showToast('Cross-source fallback salvo', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
+    }
+  }
+
+  const handleSaveDownloadThenPlay = async () => {
+    if (!isTauri()) return
+    try {
+      await invoke('set_download_then_play', { enabled: downloadThenPlay })
+      showToast('Download-then-play salvo', 'success')
+    } catch (e) {
+      showToast(`Erro: ${e}`, 'error')
     }
   }
 
@@ -217,6 +414,50 @@ export function SettingsView() {
                   <span className="text-fg-tertiary text-sm ml-2">Em desenvolvimento</span>
                 </div>
               </div>
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <SlidersHorizontal className="w-5 h-5 text-cyan-400" />
+                  Crossfade
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Transição suave entre faixas</p>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-fg-primary">Crossfade</p>
+                      <p className="text-sm text-fg-tertiary">Transição suave entre faixas consecutivas</p>
+                    </div>
+                    <button
+                      onClick={() => setCrossfadeEnabled(!crossfadeEnabled)}
+                      className={`relative w-12 h-7 rounded-full transition-colors ${
+                        crossfadeEnabled ? 'bg-brand-primary' : 'bg-bg-tertiary'
+                      }`}
+                      role="switch"
+                      aria-checked={crossfadeEnabled}
+                    >
+                      <span
+                        className={`absolute top-0.5 transition-transform duration-200 w-6 h-6 rounded-full bg-white shadow ${
+                          crossfadeEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </label>
+
+                  <div className={crossfadeEnabled ? '' : 'opacity-50 pointer-events-none'}>
+                    <label className="block">
+                      <p className="text-sm text-fg-secondary mb-2">Duração: {crossfadeDuration}s</p>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={crossfadeDuration}
+                        onChange={(e) => setCrossfadeDuration(Number(e.target.value))}
+                        className="w-full h-2 bg-bg-tertiary rounded-lg appearance-none accent-brand-primary"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -260,6 +501,235 @@ export function SettingsView() {
                   placeholder="C:\\caminho\\para\\yt-dlp.exe (opcional)"
                 />
                 <p className="text-xs text-fg-tertiary mt-2">Informe o caminho completo do executável ou deixe vazio para detecção automática.</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button onClick={handleTestYtDlp} className="btn-secondary gap-2">
+                  <Music className="w-4 h-4" />
+                  Testar yt-dlp
+                </button>
+                <button onClick={handleTestYtDlpSearch} className="btn-secondary gap-2">
+                  <Search className="w-4 h-4" />
+                  Testar busca
+                </button>
+                <button onClick={handleTestYtDlpRaw} className="btn-ghost gap-2">
+                  <Search className="w-4 h-4" />
+                  Debug raw
+                </button>
+                <button onClick={handleTestYtDlpSearchDirect} className="btn-ghost gap-2">
+                  <Search className="w-4 h-4" />
+                  Debug search
+                </button>
+              </div>
+              </div>
+
+              {/* Cookies from Browser */}
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-400" />
+                  Cookies do navegador (para conteúdo restrito)
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Importe cookies do Chrome/Edge/Firefox para acessar conteúdo com restrição de idade ou região no YouTube</p>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDetectBrowsers}
+                      disabled={detectingBrowsers}
+                      className="btn-secondary gap-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${detectingBrowsers ? 'animate-spin' : ''}`} />
+                      {detectingBrowsers ? 'Detectando...' : 'Detectar navegadores'}
+                    </button>
+                    {ytdlpCookies && (
+                      <button onClick={handleClearCookies} className="btn-ghost gap-2 text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                        Remover cookies
+                      </button>
+                    )}
+                  </div>
+
+                  {browsers.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-fg-secondary">Perfis encontrados:</p>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {browsers.map((browser) => (
+                          <div key={`${browser.browser}-${browser.profile}`} className="card p-3 border-border">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {browser.type === 'chromium' ? (
+                                  <Chrome className="w-5 h-5 text-brand-primary" />
+                                ) : (
+                                  <Globe className="w-5 h-5 text-orange-500" />
+                                )}
+                                <div>
+                                  <p className="font-medium text-fg-primary text-sm">{browser.browser}</p>
+                                  <p className="text-xs text-fg-tertiary">{browser.profile}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleImportCookies(browser.browser, browser.profile)}
+                                disabled={importingCookies !== null}
+                                className={`btn-primary btn-sm gap-1 ${importingCookies === `${browser.browser} (${browser.profile})` ? 'opacity-50' : ''}`}
+                              >
+                                {importingCookies === `${browser.browser} (${browser.profile})` ? (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                    Importando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Database className="w-3 h-3" />
+                                    Importar
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {browsers.length === 0 && !detectingBrowsers && (
+                    <div className="card p-4 border-border bg-bg-tertiary/50">
+                      <p className="text-fg-secondary text-sm text-center">
+                        Nenhum navegador detectado. Clique em "Detectar navegadores" para procurar perfis do Chrome, Edge, Firefox, Brave, Vivaldi e Opera.
+                      </p>
+                    </div>
+                  )}
+
+                  {ytdlpCookies && (
+                    <div className="card p-3 border-green-500/30 bg-green-500/5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-green-400">
+                          <ShieldCheck className="w-4 h-4" />
+                          <span className="text-sm font-medium">Cookies configurados</span>
+                        </div>
+                        <span className="text-xs text-fg-tertiary truncate max-w-xs">{ytdlpCookies}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Cross-source Fallback */}
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-cyan-400" />
+                  Fallback entre fontes
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Se o YouTube falhar (403, restrição, etc.), tenta automaticamente SoundCloud, Bandcamp, Internet Archive, Jamendo</p>
+                <label className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-fg-primary">Fallback entre fontes</p>
+                    <p className="text-sm text-fg-tertiary">Tenta outras fontes gratuitas automaticamente</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCrossSourceFallback(!crossSourceFallback)
+                      handleSaveCrossSourceFallback()
+                    }}
+                    className={`relative w-12 h-7 rounded-full transition-colors ${
+                      crossSourceFallback ? 'bg-brand-primary' : 'bg-bg-tertiary'
+                    }`}
+                    role="switch"
+                    aria-checked={crossSourceFallback}
+                  >
+                    <span
+                      className={`absolute top-0.5 transition-transform duration-200 w-6 h-6 rounded-full bg-white shadow ${
+                        crossSourceFallback ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                </label>
+              </div>
+
+              {/* Download then Play */}
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-violet-400" />
+                  Baixar antes de tocar
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Baixa a faixa completa antes de iniciar a reprodução (mais robusto para conexões instáveis ou conteúdo problemático)</p>
+                <label className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-fg-primary">Download-then-play</p>
+                    <p className="text-sm text-fg-tertiary">Baixa inteiro antes de tocar (usa mais disco, mais confiável)</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDownloadThenPlay(!downloadThenPlay)
+                      handleSaveDownloadThenPlay()
+                    }}
+                    className={`relative w-12 h-7 rounded-full transition-colors ${
+                      downloadThenPlay ? 'bg-brand-primary' : 'bg-bg-tertiary'
+                    }`}
+                    role="switch"
+                    aria-checked={downloadThenPlay}
+                  >
+                    <span
+                      className={`absolute top-0.5 transition-transform duration-200 w-6 h-6 rounded-full bg-white shadow ${
+                        downloadThenPlay ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                </label>
+              </div>
+
+              {/* Proxy */}
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <Wifi className="w-5 h-5 text-amber-400" />
+                  Proxy para yt-dlp
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Configure um proxy HTTP/SOCKS5 para contornar bloqueios de região (ex: http://user:pass@host:port ou socks5://host:port)</p>
+                <div className="flex gap-3">
+                  <input
+                    value={ytdlpProxy}
+                    onChange={(e) => setYtdlpProxy(e.target.value)}
+                    className="input flex-1"
+                    placeholder="http://user:pass@proxy:port ou socks5://host:port"
+                  />
+                  {ytdlpProxy ? (
+                    <button onClick={handleClearProxy} className="btn-ghost gap-2 text-red-400 hover:text-red-300">
+                      <Trash2 className="w-4 h-4" />
+                      Limpar
+                    </button>
+                  ) : (
+                    <button onClick={handleSaveProxy} className="btn-primary gap-2">
+                      <Save className="w-4 h-4" />
+                      Salvar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Invidious Instance */}
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-fg-primary mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-green-400" />
+                  Instância Invidious (YouTube alternativo)
+                </h3>
+                <p className="text-fg-secondary text-sm mb-4">Use uma instância Invidious para evitar bloqueios do YouTube (ex: https://yewtu.be, https://inv.nadeko.net). Deixe vazio para usar YouTube direto.</p>
+                <div className="flex gap-3">
+                  <input
+                    value={ytdlpInvidious}
+                    onChange={(e) => setYtdlpInvidious(e.target.value)}
+                    className="input flex-1"
+                    placeholder="https://yewtu.be"
+                  />
+                  {ytdlpInvidious ? (
+                    <button onClick={handleClearInvidious} className="btn-ghost gap-2 text-red-400 hover:text-red-300">
+                      <Trash2 className="w-4 h-4" />
+                      Limpar
+                    </button>
+                  ) : (
+                    <button onClick={handleSaveInvidious} className="btn-primary gap-2">
+                      <Save className="w-4 h-4" />
+                      Salvar
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-fg-tertiary mt-2">Instâncias públicas: yewtu.be, inv.nadeko.net, inv.tux.pizza, y.com.cm, invidious.snopyta.org</p>
               </div>
 
               <div className="border-t border-border pt-6">
