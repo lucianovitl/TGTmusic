@@ -49,6 +49,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
+      - name: Debug working directory
+        run: |
+          pwd
+          ls -la
+          cat package.json | head -5
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
