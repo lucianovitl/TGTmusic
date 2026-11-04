@@ -100,7 +100,6 @@ jobs:
           prerelease: false
           working-directory: src-tauri
           args: --target x86_64-pc-windows-msvc
-          working-directory: src-tauri
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
