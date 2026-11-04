@@ -1,6 +1,6 @@
 {
   "name": "tgtmusic",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Native music player with Spotify metadata, YouTube streams, and local audio files",
   "type": "module",
   "scripts": {
