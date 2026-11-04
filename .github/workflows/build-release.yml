@@ -98,7 +98,9 @@ jobs:
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
+          working-directory: src-tauri
           args: --target x86_64-pc-windows-msvc
+          working-directory: src-tauri
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -162,6 +164,7 @@ jobs:
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
+          working-directory: src-tauri
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -213,6 +216,7 @@ jobs:
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
           prerelease: false
+          working-directory: src-tauri
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
